@@ -81,6 +81,7 @@ module axi_dmac_transfer #(
   input [DMA_LENGTH_WIDTH-1:0] req_src_stride,
   input req_sync_transfer_start,
   input req_last,
+  output req_arb_enable,
 
   output reg req_eot,
   output reg [31:0] req_sg_desc_id,
@@ -243,7 +244,7 @@ module axi_dmac_transfer #(
     .clk (ctrl_clk),
     .resetn (ctrl_resetn),
 
-    .ctrl_enable (ctrl_enable),
+    .ctrl_enable (req_arb_enable),
     .ctrl_pause (ctrl_pause),
 
     .req_resetn (req_resetn),
@@ -309,6 +310,8 @@ module axi_dmac_transfer #(
   wire dma_sg_in_req_ready;
   wire dma_sg_out_req_valid;
 
+  assign req_arb_enable = ctrl_enable || !dma_sg_in_req_ready;
+
   assign dma_2d_dest_address = ctrl_hwdesc == 1'b1 ? dma_sg_out_dest_address : req_dest_address;
   assign dma_2d_src_address = ctrl_hwdesc == 1'b1 ? dma_sg_out_src_address : req_src_address;
   assign dma_2d_x_length = ctrl_hwdesc == 1'b1 ? dma_sg_x_length : req_x_length;
@@ -331,6 +334,8 @@ module axi_dmac_transfer #(
   ) i_dmac_sg (
     .req_aclk(ctrl_clk),
     .req_aresetn(ctrl_resetn),
+
+    .req_enable(ctrl_enable),
 
     .req_in_valid(dma_sg_in_req_valid),
     .req_in_ready(dma_sg_in_req_ready),
@@ -408,6 +413,8 @@ module axi_dmac_transfer #(
     .out_response_ready (dma_response_ready));
 
   end else begin
+
+  assign req_arb_enable = ctrl_enable;
 
   /* Request */
   assign dma_req_valid = req_valid_gated;
