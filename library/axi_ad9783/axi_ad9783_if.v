@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright 2021 (c) Analog Devices, Inc. All rights reserved.
+// Copyright 2021 - 2022 (c) Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -90,15 +90,15 @@ module axi_ad9783_if #(
   // dac data output serdes(s) & buffers
 
   ad_serdes_out #(
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(16),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .CMOS_LVDS_N (0),
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (16)
   ) i_serdes_out_data (
     .rst (dac_rst),
     .clk (dac_clk_s),
     .div_clk (dac_div_clk),
-    .loaden (1'b0),
     .data_oe (1'b1),
     .data_s0 (dac_data_a0),
     .data_s1 (dac_data_b0),
@@ -115,15 +115,15 @@ module axi_ad9783_if #(
   // dac clock output serdes & buffer
 
   ad_serdes_out #(
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(1),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .CMOS_LVDS_N (0),
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (1)
   ) i_serdes_out_clk (
     .rst (dac_rst),
     .clk (dac_clk_s),
     .div_clk (dac_div_clk),
-    .loaden (1'b0),
     .data_oe (1'b1),
     .data_s0 (1'b1),
     .data_s1 (1'b0),
@@ -148,7 +148,8 @@ module axi_ad9783_if #(
     .BUFGCE_DIVIDE (4),
     .IS_CE_INVERTED (1'b0),
     .IS_CLR_INVERTED (1'b0),
-    .IS_I_INVERTED (1'b0)
+    .IS_I_INVERTED (1'b0),
+    .SIM_DEVICE("ULTRASCALE_PLUS")
   ) i_dac_div_clk_rbuf (
     .O (dac_div_clk_s),
     .CE (1'b1),

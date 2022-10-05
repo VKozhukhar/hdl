@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright 2014 - 2020 (c) Analog Devices, Inc. All rights reserved.
+// Copyright 2014 - 2022 (c) Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -99,16 +99,15 @@ module adrv9001_tx #(
   wire                 ssi_rst;
 
   ad_serdes_out #(
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
     .CMOS_LVDS_N (CMOS_LVDS_N),
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(NUM_LANES),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (NUM_LANES)
   ) i_serdes (
     .rst (dac_rst|ssi_rst),
     .clk (dac_fast_clk),
     .div_clk (dac_clk_div),
-    .loaden (1'b0),
     .data_oe (tx_output_enable),
     .data_s0 (data_s0),
     .data_s1 (data_s1),

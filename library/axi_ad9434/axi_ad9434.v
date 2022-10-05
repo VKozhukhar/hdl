@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright 2014 - 2017 (c) Analog Devices, Inc. All rights reserved.
+// Copyright 2014 - 2022 (c) Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -38,11 +38,11 @@
 module axi_ad9434 #(
 
   parameter ID = 0,
-
   parameter FPGA_TECHNOLOGY = 0,
   parameter FPGA_FAMILY = 0,
   parameter SPEED_GRADE = 0,
   parameter DEV_PACKAGE = 0,
+  parameter IODELAY_ENABLE = 1,
   parameter IO_DELAY_GROUP = "dev_if_delay_group"
 ) (
 
@@ -132,8 +132,9 @@ module axi_ad9434 #(
   assign up_rstn = s_axi_aresetn;
 
   axi_ad9434_if #(
-    .FPGA_TECHNOLOGY(FPGA_TECHNOLOGY),
-    .IO_DELAY_GROUP(IO_DELAY_GROUP)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .IODELAY_ENABLE (IODELAY_ENABLE),
+    .IO_DELAY_GROUP (IO_DELAY_GROUP)
   ) i_if (
     .adc_clk_in_p(adc_clk_in_p),
     .adc_clk_in_n(adc_clk_in_n),

@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright 2014 - 2017 (c) Analog Devices, Inc. All rights reserved.
+// Copyright 2014 - 2022 (c) Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -100,15 +100,15 @@ module axi_ad9739a_if #(
   // dac data output serdes(s) & buffers
 
   ad_serdes_out #(
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(14),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .CMOS_LVDS_N (0),
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (14)
   ) i_serdes_out_data_a (
     .rst (dac_rst),
     .clk (dac_clk),
     .div_clk (dac_div_clk),
-    .loaden (1'b0),
     .data_oe (1'b1),
     .data_s0 (dac_data_00[15:2]),
     .data_s1 (dac_data_02[15:2]),
@@ -125,15 +125,15 @@ module axi_ad9739a_if #(
   // dac data output serdes(s) & buffers
 
   ad_serdes_out #(
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(14),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .CMOS_LVDS_N (0),
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (14)
   ) i_serdes_out_data_b (
     .rst (dac_rst),
     .clk (dac_clk),
     .div_clk (dac_div_clk),
-    .loaden (1'b0),
     .data_oe (1'b1),
     .data_s0 (dac_data_01[15:2]),
     .data_s1 (dac_data_03[15:2]),
@@ -150,15 +150,15 @@ module axi_ad9739a_if #(
   // dac clock output serdes & buffer
 
   ad_serdes_out #(
-    .DDR_OR_SDR_N(1),
-    .DATA_WIDTH(1),
-    .SERDES_FACTOR(8),
-    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY)
+    .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
+    .CMOS_LVDS_N (0),
+    .DDR_OR_SDR_N (1),
+    .SERDES_FACTOR (8),
+    .DATA_WIDTH (1)
   ) i_serdes_out_clk (
     .rst (dac_rst),
     .clk (dac_clk),
     .div_clk (dac_div_clk),
-    .loaden (1'b0),
     .data_oe (1'b1),
     .data_s0 (1'b1),
     .data_s1 (1'b0),

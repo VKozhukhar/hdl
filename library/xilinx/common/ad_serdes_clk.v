@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright 2014 - 2017 (c) Analog Devices, Inc. All rights reserved.
+// Copyright 2014 - 2022 (c) Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -32,22 +32,27 @@
 //
 // ***************************************************************************
 // ***************************************************************************
+
 // serial data output interface: serdes(x8)
+// for more details about I/OSERDES, check UG471 for 7 series, and UG571 for
+// UltraScale/UltraScale+
 
 `timescale 1ps/1ps
 
 module ad_serdes_clk #(
 
-  parameter       FPGA_TECHNOLOGY = 0,
-  parameter       DDR_OR_SDR_N = 1,
-  parameter       CLKIN_DS_OR_SE_N = 1,
-  parameter       SERDES_FACTOR = 8,
-  parameter       MMCM_OR_BUFR_N = 1,
-  parameter       MMCM_CLKIN_PERIOD  = 1.667,
-  parameter       MMCM_VCO_DIV  = 6,
-  parameter       MMCM_VCO_MUL = 12.000,
-  parameter       MMCM_CLK0_DIV = 2.000,
-  parameter       MMCM_CLK1_DIV = 6
+  parameter   FPGA_TECHNOLOGY = 0,
+  parameter   DDR_OR_SDR_N = 1,
+  // single ended - 0
+  // differential - 1
+  parameter   CLKIN_DS_OR_SE_N = 1,
+  parameter   SERDES_FACTOR = 8,
+  parameter   MMCM_OR_BUFR_N = 1,
+  parameter   MMCM_CLKIN_PERIOD  = 1.667,
+  parameter   MMCM_VCO_DIV  = 6,
+  parameter   MMCM_VCO_MUL = 12.000,
+  parameter   MMCM_CLK0_DIV = 2.000,
+  parameter   MMCM_CLK1_DIV = 6
 ) (
 
   // clock and divided clock
@@ -58,8 +63,6 @@ module ad_serdes_clk #(
   output          clk,
   output          div_clk,
   output          out_clk,
-  output          loaden,
-  output  [ 7:0]  phase,
 
   // drp interface
 
@@ -82,8 +85,6 @@ module ad_serdes_clk #(
 
   // defaults
 
-  assign loaden = 'd0;
-  assign phase = 'd0;
   assign up_drp_rdata[31:16] = 'd0;
 
   // instantiations
