@@ -172,6 +172,37 @@ module ad_data_out #(
   endgenerate
 
   generate
+  if ((IODELAY_FPGA_TECHNOLOGY == ULTRASCALE_PLUS) || (IODELAY_FPGA_TECHNOLOGY == ULTRASCALE)) begin
+
+    (* IODELAY_GROUP = IODELAY_GROUP *)
+    ODELAYE3 #(
+      .CASCADE ("NONE"),                    // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
+      .DELAY_FORMAT ("COUNT"),              // (COUNT, TIME)
+      .DELAY_TYPE ("VAR_LOAD"),             // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
+      .DELAY_VALUE (0),                     // Output delay tap setting
+      .IS_CLK_INVERTED (1'b0),              // Optional inversion for CLK
+      .IS_RST_INVERTED (1'b0),              // Optional inversion for RST
+      .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
+      .SIM_DEVICE (IODELAY_SIM_DEVICE),     // Set the device version for simulation functionality (ULTRASCALE)
+      .UPDATE_MODE ("ASYNC")                // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
+    ) i_tx_data_odelay (
+      .CASC_RETURN (1'b0),         // 1-bit input: Cascade delay returning from slave IDELAY DATAOUT
+      .CASC_IN (1'b0),             // 1-bit input: Cascade delay input from slave IDELAY CASCADE_OUT
+      .CASC_OUT (),                // 1-bit output: Cascade delay output to IDELAY input cascade
+      .CE (1'b0),                  // 1-bit input: Active-High enable increment/decrement input
+      .CLK (up_clk),               // 1-bit input: Clock input
+      .INC (1'b0),                 // 1-bit input: Increment/Decrement tap delay input
+      .LOAD (up_dld),              // 1-bit input: Load DELAY_VALUE input
+      .CNTVALUEIN (up_dwdata),     // 9-bit input: Counter value input
+      .CNTVALUEOUT (up_drdata),    // 9-bit output: Counter value output
+      .ODATAIN (tx_data_oddr_s),   // 1-bit input: Data input
+      .DATAOUT (tx_data_odelay_s), // 1-bit output: Delayed data from ODATAIN input port
+      .RST (1'b0),                 // 1-bit input: Asynchronous Reset to the DELAY_VALUE
+      .EN_VTC (~up_dld));          // 1-bit input: Keep delay constant over VT
+  end
+  endgenerate
+
+  generate
   if (IODELAY_FPGA_TECHNOLOGY == NONE) begin
     assign up_drdata = 5'd0;
     assign tx_data_odelay_s = tx_data_oddr_s;
