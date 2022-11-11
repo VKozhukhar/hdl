@@ -37,13 +37,19 @@
 
 module ad_data_out #(
 
-  parameter   FPGA_TECHNOLOGY = 0,
-  parameter   SINGLE_ENDED = 0,
-  parameter   IDDR_CLK_EDGE ="SAME_EDGE",
-  parameter   IODELAY_ENABLE = 0,
-  parameter   IODELAY_CTRL = 0,
-  parameter   IODELAY_GROUP = "dev_if_delay_group",
-  parameter   REFCLK_FREQUENCY = 200
+  parameter FPGA_TECHNOLOGY = 0,
+  parameter SINGLE_ENDED = 0,
+  parameter ODDR_CLK_EDGE ="SAME_EDGE",
+  // for 7 series devices
+  parameter ODELAY_TYPE = "VAR_LOAD",
+  // for ultrascale devices
+  parameter DELAY_FORMAT = "COUNT",
+  parameter US_DELAY_TYPE = "VAR_LOAD",
+  // for all
+  parameter IODELAY_ENABLE = 0,
+  parameter IODELAY_CTRL = 0,
+  parameter IODELAY_GROUP = "dev_if_delay_group",
+  parameter REFCLK_FREQUENCY = 200
 ) (
 
   // data interface
@@ -81,17 +87,63 @@ module ad_data_out #(
   localparam  IODELAY_SIM_DEVICE = (FPGA_TECHNOLOGY == ULTRASCALE_PLUS) ? "ULTRASCALE_PLUS" :
     (FPGA_TECHNOLOGY == ULTRASCALE) ? "ULTRASCALE" : "7SERIES";
 
+/*
+* For 7 series, IDELAYCTRL is enabled ALWAYS, meaning in the following situations:
+  * when ODELAY_TYPE = FIXED
+  * when ODELAY_TYPE = VARIABLE
+  * when ODELAY_TYPE = VAR_LOAD
+**/
+
+/*
+ * For UltraScale/UltraScale+:
+   * when DELAY_FORMAT = TIME:
+     * IDELAYCTRL must be used
+     * REFCLK_FREQUENCY must reflect the clock frequency of REF_CLK applied to
+      the IDELAYCTRL component
+     * DELAY_VALUE attribute represents an amount in ps
+     * The total delay through the IDELAYE3 is the align delay + DELAY_VALUE
+     * EN_VTC depends on DELAY_TYPE attribute:
+       * when FIXED mode: EN_VTC = 1
+       * It must be actively manipulated when the delay line is used in
+        VARIABLE or VAR_LOAD mode
+        (this section is NOT IMPLEMENTED! More details in UG571, DELAY_TYPE = VAR_LOAD mode and VARIABLE mode)
+
+   * when DELAY_FORMAT = COUNT:
+     * DO NOT use an IDELAYCTRL
+     * REFCLK_FREQUENCY must be set to default frequency (300MHz)
+     * Delay line represents an amount of taps (512 taps available)
+     * CNTVALUEIN/OUT[8:0] values represent the amount of taps the delay line
+      is set to
+     * EN_VTC = 0
+   **/
+
   // internal signals
 
-  wire                tx_data_oddr_s;
-  wire                tx_data_odelay_s;
+  wire          tx_data_oddr_s;
+  wire          tx_data_odelay_s;
+
+  // internal registers
+
+  reg           en_vtc;
+
+  // determine EN_VTC (VAR_LOAD and VARIABLE modes not implemented as in UG571)
+
+  always @(posedge tx_clk) begin
+    if (DELAY_FORMAT == "TIME") begin
+      if (US_DELAY_TYPE == "FIXED") begin
+        en_vtc <= 1'b1;
+      end else begin // "VAR_LOAD", "VARIABLE"
+        en_vtc <= ~up_dld;
+      end
+    end else begin // "COUNT"
+      en_vtc <= 1'b0;
+    end
+  end
 
   // delay controller
 
   generate
-  if (IODELAY_CTRL_ENABLED == 0) begin
-    assign delay_locked = 1'b1;
-  end else begin
+  if (IODELAY_CTRL_ENABLED) begin
     (* IODELAY_GROUP = IODELAY_GROUP *)
     IDELAYCTRL #(
       .SIM_DEVICE (IODELAY_CTRL_SIM_DEVICE)
@@ -99,6 +151,17 @@ module ad_data_out #(
       .RST (delay_rst),
       .REFCLK (delay_clk),
       .RDY (delay_locked));
+  end else begin
+    assign delay_locked = 1'b1;
+  end
+  endgenerate
+
+  // bypass ODELAY
+
+  generate
+  if (IODELAY_ENABLE == 0) begin
+    assign tx_data_odelay_s = tx_data_oddr_s;
+    assign up_drdata = 5'd0;
   end
   endgenerate
 
@@ -109,7 +172,7 @@ module ad_data_out #(
   generate
   if (FPGA_TECHNOLOGY == SEVEN_SERIES) begin
     ODDR #(
-      .DDR_CLK_EDGE (IDDR_CLK_EDGE), // "OPPOSITE_EDGE" or "SAME_EDGE"
+      .DDR_CLK_EDGE (ODDR_CLK_EDGE), // "OPPOSITE_EDGE" or "SAME_EDGE"
       .INIT (1'b0),                  // Initial value of Q: 1'b0 or 1'b1
       .SRTYPE ("SYNC")               // Set/Reset type: "SYNC" or "ASYNC"
     ) i_tx_data_oddr (
@@ -144,68 +207,64 @@ module ad_data_out #(
 
   generate
   if (IODELAY_FPGA_TECHNOLOGY == SEVEN_SERIES) begin
-    (* IODELAY_GROUP = IODELAY_GROUP *)
-    ODELAYE2 #(
-      .CINVCTRL_SEL ("FALSE"),              // Enable dynamic clock inversion (FALSE, TRUE)
-      .DELAY_SRC ("ODATAIN"),               // Delay input (ODATAIN, CLKIN)
-      .HIGH_PERFORMANCE_MODE ("FALSE"),     // Reduced jitter ("TRUE"), Reduced power ("FALSE")
-      .ODELAY_TYPE ("VAR_LOAD"),            // FIXED, VARIABLE, VAR_LOAD, VAR_LOAD_PIPE
-      .ODELAY_VALUE (0),                    // Output delay tap setting (0-31)
-      .PIPE_SEL ("FALSE"),                  // Select pipelined mode, FALSE, TRUE
-      .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (190.0-210.0, 290.0-310.0)
-      .SIGNAL_PATTERN ("DATA")              // DATA, CLOCK input signal
-    ) i_tx_data_odelay (
-      .CE (1'b0),                  // 1-bit input: Active high enable increment/decrement input
-      .CLKIN (1'b0),               // 1-bit input: Clock delay input
-      .INC (1'b0),                 // 1-bit input: Increment / Decrement tap delay input
-      .LDPIPEEN (1'b0),            // 1-bit input: Enables the pipeline register to load data
-      .CINVCTRL (1'b0),            // 1-bit input: Dynamic clock inversion input
-      .REGRST (1'b0),              // 1-bit input: Active-high reset tap-delay input
-      .C (up_clk),                 // 1-bit input: Clock input
-      .ODATAIN (tx_data_oddr_s),   // 1-bit input: Output delay data input
-      .DATAOUT (tx_data_odelay_s), // 1-bit output: Delayed data/clock output
-      .LD (up_dld),                // 1-bit input: Loads ODELAY_VALUE tap delay in VARIABLE mode, in VAR_LOAD or
-                                   // VAR_LOAD_PIPE mode, loads the value of CNTVALUEIN
-      .CNTVALUEIN (up_dwdata),     // 5-bit input: Counter value input
-      .CNTVALUEOUT (up_drdata));   // 5-bit output: Counter value output
+    if (IODELAY_ENABLE) begin
+      (* IODELAY_GROUP = IODELAY_GROUP *)
+      ODELAYE2 #(
+        .CINVCTRL_SEL ("FALSE"),              // Enable dynamic clock inversion (FALSE, TRUE)
+        .DELAY_SRC ("ODATAIN"),               // Delay input (ODATAIN, CLKIN)
+        .HIGH_PERFORMANCE_MODE ("FALSE"),     // Reduced jitter ("TRUE"), Reduced power ("FALSE")
+        .ODELAY_TYPE (ODELAY_TYPE),           // FIXED, VARIABLE, VAR_LOAD, VAR_LOAD_PIPE
+        .ODELAY_VALUE (0),                    // Output delay tap setting (0-31)
+        .PIPE_SEL ("FALSE"),                  // Select pipelined mode, FALSE, TRUE
+        .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (190.0-210.0, 290.0-310.0)
+        .SIGNAL_PATTERN ("DATA")              // DATA, CLOCK input signal
+      ) i_tx_data_odelay (
+        .CE (1'b0),                  // 1-bit input: Active high enable increment/decrement input
+        .CLKIN (1'b0),               // 1-bit input: Clock delay input
+        .INC (1'b0),                 // 1-bit input: Increment / Decrement tap delay input
+        .LDPIPEEN (1'b0),            // 1-bit input: Enables the pipeline register to load data
+        .CINVCTRL (1'b0),            // 1-bit input: Dynamic clock inversion input
+        .REGRST (1'b0),              // 1-bit input: Active-high reset tap-delay input
+        .C (up_clk),                 // 1-bit input: Clock input
+        .ODATAIN (tx_data_oddr_s),   // 1-bit input: Output delay data input
+        .DATAOUT (tx_data_odelay_s), // 1-bit output: Delayed data/clock output
+        .LD (up_dld),                // 1-bit input: Loads ODELAY_VALUE tap delay in VARIABLE mode, in VAR_LOAD or
+                                     // VAR_LOAD_PIPE mode, loads the value of CNTVALUEIN
+        .CNTVALUEIN (up_dwdata),     // 5-bit input: Counter value input
+        .CNTVALUEOUT (up_drdata));   // 5-bit output: Counter value output
+    end
   end
   endgenerate
 
   generate
   if ((IODELAY_FPGA_TECHNOLOGY == ULTRASCALE_PLUS) || (IODELAY_FPGA_TECHNOLOGY == ULTRASCALE)) begin
-
-    (* IODELAY_GROUP = IODELAY_GROUP *)
-    ODELAYE3 #(
-      .CASCADE ("NONE"),                    // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
-      .DELAY_FORMAT ("COUNT"),              // (COUNT, TIME)
-      .DELAY_TYPE ("VAR_LOAD"),             // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
-      .DELAY_VALUE (0),                     // Output delay tap setting
-      .IS_CLK_INVERTED (1'b0),              // Optional inversion for CLK
-      .IS_RST_INVERTED (1'b0),              // Optional inversion for RST
-      .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
-      .SIM_DEVICE (IODELAY_SIM_DEVICE),     // Set the device version for simulation functionality (ULTRASCALE)
-      .UPDATE_MODE ("ASYNC")                // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
-    ) i_tx_data_odelay (
-      .CASC_RETURN (1'b0),         // 1-bit input: Cascade delay returning from slave IDELAY DATAOUT
-      .CASC_IN (1'b0),             // 1-bit input: Cascade delay input from slave IDELAY CASCADE_OUT
-      .CASC_OUT (),                // 1-bit output: Cascade delay output to IDELAY input cascade
-      .CE (1'b0),                  // 1-bit input: Active-High enable increment/decrement input
-      .CLK (up_clk),               // 1-bit input: Clock input
-      .INC (1'b0),                 // 1-bit input: Increment/Decrement tap delay input
-      .LOAD (up_dld),              // 1-bit input: Load DELAY_VALUE input
-      .CNTVALUEIN (up_dwdata),     // 9-bit input: Counter value input
-      .CNTVALUEOUT (up_drdata),    // 9-bit output: Counter value output
-      .ODATAIN (tx_data_oddr_s),   // 1-bit input: Data input
-      .DATAOUT (tx_data_odelay_s), // 1-bit output: Delayed data from ODATAIN input port
-      .RST (1'b0),                 // 1-bit input: Asynchronous Reset to the DELAY_VALUE
-      .EN_VTC (~up_dld));          // 1-bit input: Keep delay constant over VT
-  end
-  endgenerate
-
-  generate
-  if (IODELAY_FPGA_TECHNOLOGY == NONE) begin
-    assign up_drdata = 5'd0;
-    assign tx_data_odelay_s = tx_data_oddr_s;
+    if (IODELAY_ENABLE) begin
+      (* IODELAY_GROUP = IODELAY_GROUP *)
+      ODELAYE3 #(
+        .CASCADE ("NONE"),                    // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
+        .DELAY_FORMAT (DELAY_FORMAT),         // (COUNT, TIME)
+        .DELAY_TYPE (US_DELAY_TYPE),          // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
+        .DELAY_VALUE (0),                     // Output delay tap setting
+        .IS_CLK_INVERTED (1'b0),              // Optional inversion for CLK
+        .IS_RST_INVERTED (1'b0),              // Optional inversion for RST
+        .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
+        .SIM_DEVICE (IODELAY_SIM_DEVICE),     // Set the device version for simulation functionality (ULTRASCALE)
+        .UPDATE_MODE ("ASYNC")                // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
+      ) i_tx_data_odelay (
+        .CASC_RETURN (1'b0),         // 1-bit input: Cascade delay returning from slave IDELAY DATAOUT
+        .CASC_IN (1'b0),             // 1-bit input: Cascade delay input from slave IDELAY CASCADE_OUT
+        .CASC_OUT (),                // 1-bit output: Cascade delay output to IDELAY input cascade
+        .CE (1'b0),                  // 1-bit input: Active-High enable increment/decrement input
+        .CLK (up_clk),               // 1-bit input: Clock input
+        .INC (1'b0),                 // 1-bit input: Increment/Decrement tap delay input
+        .LOAD (up_dld),              // 1-bit input: Load DELAY_VALUE input
+        .CNTVALUEIN (up_dwdata),     // 9-bit input: Counter value input
+        .CNTVALUEOUT (up_drdata),    // 9-bit output: Counter value output
+        .ODATAIN (tx_data_oddr_s),   // 1-bit input: Data input
+        .DATAOUT (tx_data_odelay_s), // 1-bit output: Delayed data from ODATAIN input port
+        .RST (1'b0),                 // 1-bit input: Asynchronous Reset to the DELAY_VALUE
+        .EN_VTC (en_vtc));           // 1-bit input: Keep delay constant over VT
+    end
   end
   endgenerate
 
