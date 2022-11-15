@@ -117,8 +117,8 @@ module ad_data_out #(
       .R (1'b0),            // 1-bit reset
       .S (1'b0),            // 1-bit set
       .C (tx_clk),          // 1-bit clock input
-      .D1 (tx_data_n),      // 1-bit data input (positive edge)
-      .D2 (tx_data_p),      // 1-bit data input (negative edge)
+      .D1 (tx_data_p),      // 1-bit data input (positive edge)
+      .D2 (tx_data_n),      // 1-bit data input (negative edge)
       .Q (tx_data_oddr_s)); // 1-bit DDR output
   end
   endgenerate
@@ -134,8 +134,8 @@ module ad_data_out #(
     ) i_tx_data_oddr (
       .SR (1'b0),           // 1-bit input: Active-High Async Reset
       .C (tx_clk),          // 1-bit input: High-speed clock input
-      .D1 (tx_data_n),      // 1-bit input: Parallel data input 1
-      .D2 (tx_data_p),      // 1-bit input: Parallel data input 2
+      .D1 (tx_data_p),      // 1-bit input: Parallel data input 1
+      .D2 (tx_data_n),      // 1-bit input: Parallel data input 2
       .Q (tx_data_oddr_s)); // 1-bit output: Data output to IOB
   end
   endgenerate
