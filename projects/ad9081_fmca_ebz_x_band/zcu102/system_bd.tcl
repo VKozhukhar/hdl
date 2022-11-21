@@ -142,15 +142,62 @@ create_bd_port -dir O tdd_rx_mxfe_en
 create_bd_port -dir O tdd_tx_mxfe_en
 create_bd_port -dir O tdd_tx_stingray_en
 
-ad_disconnect tdd_sync_0/sync_in GND
-ad_disconnect tdd_sync_0/sync_mode GND
+ad_ip_parameter axi_tdd_0 CONFIG.CHANNEL_COUNT 6
 
-ad_connect tdd_sync_0/sync_in tdd_sync
-ad_connect tdd_sync_0/sync_mode VCC
+# Overwrite tdd_ch_slice_0 properties
+set_property -dict [ list \
+ CONFIG.DIN_FROM {0} \
+ CONFIG.DIN_TO {0} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_0
 
-ad_connect axi_tdd_0/tdd_enabled tdd_enabled
-ad_connect axi_tdd_0/tdd_rx_rf_en tdd_rx_mxfe_en
-ad_connect axi_tdd_0/tdd_tx_rf_en tdd_tx_mxfe_en
-# repurpose tdd_tx_vco_en as XUD1A and Stingray TR
-ad_connect axi_tdd_0/tdd_tx_vco_en tdd_tx_stingray_en
+# Overwrite tdd_ch_slice_1 properties
+set_property -dict [ list \
+ CONFIG.DIN_FROM {1} \
+ CONFIG.DIN_TO {1} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_1
+
+# Create instance: tdd_ch_slice_2, and set properties
+set tdd_ch_slice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tdd_ch_slice_2 ]
+set_property -dict [ list \
+ CONFIG.DIN_FROM {2} \
+ CONFIG.DIN_TO {2} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_2
+
+# Create instance: tdd_ch_slice_3, and set properties
+set tdd_ch_slice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tdd_ch_slice_3 ]
+set_property -dict [ list \
+ CONFIG.DIN_FROM {3} \
+ CONFIG.DIN_TO {3} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_3
+
+# Create instance: tdd_ch_slice_4, and set properties
+set tdd_ch_slice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tdd_ch_slice_4 ]
+set_property -dict [ list \
+ CONFIG.DIN_FROM {4} \
+ CONFIG.DIN_TO {4} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_4
+
+# Create instance: tdd_ch_slice_5, and set properties
+set tdd_ch_slice_5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tdd_ch_slice_5 ]
+set_property -dict [ list \
+ CONFIG.DIN_FROM {5} \
+ CONFIG.DIN_TO {5} \
+ CONFIG.DIN_WIDTH {6} \
+] $tdd_ch_slice_5
+
+connect_bd_net -net tdd_channel [get_bd_pins axi_tdd_0/tdd_channel] \
+ [get_bd_pins tdd_ch_slice_2/Din] [get_bd_pins tdd_ch_slice_3/Din] \
+ [get_bd_pins tdd_ch_slice_4/Din] [get_bd_pins tdd_ch_slice_5/Din]
+
+ad_disconnect axi_tdd_0/sync_in GND
+ad_connect axi_tdd_0/sync_in tdd_sync
+ad_connect tdd_ch_slice_2/Dout tdd_enabled
+ad_connect tdd_ch_slice_3/Dout tdd_rx_mxfe_en
+ad_connect tdd_ch_slice_4/Dout tdd_tx_mxfe_en
+ad_connect tdd_ch_slice_5/Dout tdd_tx_stingray_en
 
