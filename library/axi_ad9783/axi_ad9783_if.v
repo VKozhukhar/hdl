@@ -148,8 +148,7 @@ module axi_ad9783_if #(
     .BUFGCE_DIVIDE (4),
     .IS_CE_INVERTED (1'b0),
     .IS_CLR_INVERTED (1'b0),
-    .IS_I_INVERTED (1'b0),
-    .SIM_DEVICE("ULTRASCALE_PLUS")
+    .IS_I_INVERTED (1'b0)
   ) i_dac_div_clk_rbuf (
     .O (dac_div_clk_s),
     .CE (1'b1),
