@@ -205,7 +205,10 @@ module ad_serdes_in #(
   if ((FPGA_TECHNOLOGY == ULTRASCALE || FPGA_TECHNOLOGY == ULTRASCALE_PLUS) && IODELAY_ENABLE) begin
     for (l_inst = 0; l_inst <= (DATA_WIDTH-1); l_inst = l_inst + 1) begin: for_ultrascale
 
-      wire   div_dld;
+      wire div_dld;
+      wire en_vtc;
+      wire ld_cnt;
+
       reg [4:0] vtc_cnt = {5{1'b1}};
 
       sync_event sync_load (
