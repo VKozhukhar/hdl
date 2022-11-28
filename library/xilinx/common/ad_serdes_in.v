@@ -115,9 +115,7 @@ module ad_serdes_in #(
   // delay controller
 
   generate
-  if (!IODELAY_CTRL_ENABLED) begin
-    assign delay_locked = 1'b1;
-  end else begin
+  if (IODELAY_CTRL_ENABLED == 1) begin
     (* IODELAY_GROUP = IODELAY_GROUP *)
     IDELAYCTRL #(
       .SIM_DEVICE (SIM_DEVICE_IDELAYCTRL)
@@ -125,13 +123,15 @@ module ad_serdes_in #(
       .RST (delay_rst),
       .REFCLK (delay_clk),
       .RDY (delay_locked));
+  end else begin
+    assign delay_locked = 1'b1;
   end
   endgenerate
 
   // bypass IDELAY
 
   generate
-  if (!IODELAY_ENABLE) begin
+  if (IODELAY_ENABLE == 0) begin
     assign data_in_idelay_s = data_in_ibuf_s;
   end
   endgenerate
