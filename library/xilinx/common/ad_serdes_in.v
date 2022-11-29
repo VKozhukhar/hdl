@@ -182,20 +182,18 @@ module ad_serdes_in #(
         .REFCLK_FREQUENCY (REFCLK_FREQUENCY), // IDELAYCTRL clock input frequency in MHz (190.0-210.0, 290.0-310.0)
         .SIGNAL_PATTERN ("DATA")              // DATA, CLOCK input signal
       ) i_idelay (
-        .CE (1'b0),                           // 5-bit output: Counter value output
-        .INC (1'b0),                          // 1-bit output: Delayed data output
-        .DATAIN (1'b0),                       // 1-bit input: Clock input
-        .LDPIPEEN (1'b0),                     // 1-bit input: Active high enable increment/decrement input
+        .CE (1'b0),                           // 1-bit input: Active high enable increment/decrement input
+        .INC (1'b0),                          // 1-bit input: Increment / Decrement tap delay input
+        .DATAIN (1'b0),                       // 1-bit input: Internal delay data input
+        .LDPIPEEN (1'b0),                     // 1-bit input: Enable PIPELINE register to load data input
         .CINVCTRL (1'b0),                     // 1-bit input: Dynamic clock inversion input
-        .REGRST (1'b0),                       // 5-bit input: Counter value input
-        .C (up_clk),                          // 1-bit input: Internal delay data input
+        .REGRST (1'b0),                       // 1-bit input: Active-high reset tap-delay input
+        .C (up_clk),                          // 1-bit input: Clock input
         .IDATAIN (data_in_ibuf_s[l_inst]),    // 1-bit input: Data input from the I/O
-        .DATAOUT (data_in_idelay_s[l_inst]),  // 1-bit input: Increment / Decrement tap delay input
+        .DATAOUT (data_in_idelay_s[l_inst]),  // 1-bit output: Delayed data output
         .LD (up_dld[l_inst]),                 // 1-bit input: Load IDELAY_VALUE input
-        // 1-bit input: Enable PIPELINE register to load data input
-        .CNTVALUEIN (up_dwdata[DRP_WIDTH*l_inst +: DRP_WIDTH]),
-        // 1-bit input: Active-high reset tap-delay input
-        .CNTVALUEOUT (up_drdata[DRP_WIDTH*l_inst +: DRP_WIDTH]));
+        .CNTVALUEIN (up_dwdata[DRP_WIDTH*l_inst +: DRP_WIDTH]),   // 5-bit input: Counter value input
+        .CNTVALUEOUT (up_drdata[DRP_WIDTH*l_inst +: DRP_WIDTH])); // 5-bit output: Counter value output
       end /* for_7series */
     end
   endgenerate
